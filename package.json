@@ -1,7 +1,7 @@
 {
-  "name": "net.maaaaa.asset-sanshounaosu-nator",
-  "displayName": "アセット参照直すネーター",
-  "version": "0.2.1",
+  "name": "net.maaaaa.ref-fixer",
+  "displayName": "Poyo's Reference Fixer",
+  "version": "0.3.0",
   "description": "Prefab の壊れた参照 (Missing Reference) を検査・診断・修復する Editor 拡張です。",
   "unity": "2022.3",
   "license": "MIT",
@@ -9,7 +9,10 @@
     "name": "Poyotoron",
     "url": "https://github.com/Poyotoron"
   },
-  "url": "https://github.com/Poyotoron/Asset-Sanshounaosu-Nator/releases/download/0.2.1/net.maaaaa.asset-sanshounaosu-nator-0.2.1.zip",
-  "documentationUrl": "https://ghp.maaaaa.net/Asset-Sanshounaosu-Nator/",
-  "changelogUrl": "https://github.com/Poyotoron/Asset-Sanshounaosu-Nator/blob/main/CHANGELOG.md"
+  "url": "https://github.com/Poyotoron/Ref-Fixer/releases/download/0.3.0/net.maaaaa.ref-fixer-0.3.0.zip",
+  "documentationUrl": "https://ghp.maaaaa.net/Ref-Fixer/",
+  "changelogUrl": "https://github.com/Poyotoron/Ref-Fixer/blob/main/CHANGELOG.md",
+  "legacyPackages": [
+    "net.maaaaa.asset-sanshounaosu-nator"
+  ]
 }

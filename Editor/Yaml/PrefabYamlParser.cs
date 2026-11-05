@@ -4,9 +4,9 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using Maaaaa.Asn.Editor.Core;
+using Poyo.RefFixer.Editor.Core;
 
-namespace Maaaaa.Asn.Editor.Yaml
+namespace Poyo.RefFixer.Editor.Yaml
 {
     internal static class PrefabYamlParser
     {

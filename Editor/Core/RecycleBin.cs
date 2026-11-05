@@ -9,7 +9,7 @@ using System.Security.Principal;
 using UnityEditor;
 using UnityEngine;
 
-namespace Maaaaa.Asn.Editor.Core
+namespace Poyo.RefFixer.Editor.Core
 {
     internal sealed class RecycleBinEntry
     {
@@ -43,7 +43,7 @@ namespace Maaaaa.Asn.Editor.Core
                 if (Application.platform == RuntimePlatform.WindowsEditor) return "Windows ごみ箱 ($Recycle.Bin)";
                 if (Application.platform == RuntimePlatform.OSXEditor) return "macOS ごみ箱 (~/.Trash / 実装済み・実機未検証)";
                 if (Application.platform == RuntimePlatform.LinuxEditor) return "Linux XDG ごみ箱 (実装済み・実機未検証)";
-                return "この OS のごみ箱探索には対応していません。";
+                return "この OS のごみ箱から探す機能には対応していません。";
             }
         }
 
@@ -59,7 +59,7 @@ namespace Maaaaa.Asn.Editor.Core
                 if (Application.platform == RuntimePlatform.WindowsEditor) entries = ScanWindows(showProgress);
                 else if (Application.platform == RuntimePlatform.OSXEditor) entries = ScanMac(showProgress);
                 else if (Application.platform == RuntimePlatform.LinuxEditor) entries = ScanLinux(showProgress);
-                else _warnings.Add("この OS のごみ箱探索には対応していません。");
+                else _warnings.Add("この OS のごみ箱から探す機能には対応していません。");
             }
             finally { if (showProgress) EditorUtility.ClearProgressBar(); }
             _cache = entries;
@@ -134,13 +134,13 @@ namespace Maaaaa.Asn.Editor.Core
                         : Directory.GetDirectories(root).SelectMany(directory =>
                         {
                             try { return Directory.GetFiles(directory, "$I*", SearchOption.TopDirectoryOnly); }
-                            catch (Exception exception) { _warnings.Add("列挙できないごみ箱があります: " + directory + " (" + exception.Message + ")"); return new string[0]; }
+                            catch (Exception exception) { _warnings.Add("内容を調べられないごみ箱があります: " + directory + " (" + exception.Message + ")"); return new string[0]; }
                         }).ToArray();
                 }
-                catch (Exception exception) { _warnings.Add("列挙できないごみ箱があります: " + root + " (" + exception.Message + ")"); continue; }
+                catch (Exception exception) { _warnings.Add("内容を調べられないごみ箱があります: " + root + " (" + exception.Message + ")"); continue; }
                 for (var index = 0; index < infoFiles.Length; index++)
                 {
-                    if (showProgress && EditorUtility.DisplayCancelableProgressBar(AsnText.WindowTitle, "ごみ箱を走査中: " + drive.Name,
+                    if (showProgress && EditorUtility.DisplayCancelableProgressBar(RefFixerText.WindowTitle, "ごみ箱を調べています: " + drive.Name,
                             infoFiles.Length == 0 ? 1f : (float)index / infoFiles.Length)) { cancelled = true; break; }
                     try
                     {
@@ -157,7 +157,7 @@ namespace Maaaaa.Asn.Editor.Core
                             DeletedUtc = deletedUtc
                         });
                     }
-                    catch (Exception exception) { _warnings.Add("ごみ箱エントリを読めません: " + infoFiles[index] + " (" + exception.Message + ")"); }
+                    catch (Exception exception) { _warnings.Add("ごみ箱の項目を読み取れません: " + infoFiles[index] + " (" + exception.Message + ")"); }
                 }
             }
             return PairMetaEntries(raw);
@@ -213,10 +213,10 @@ namespace Maaaaa.Asn.Editor.Core
             if (!Directory.Exists(root)) return result;
             string[] files;
             try { files = Directory.GetFiles(root, "*", SearchOption.TopDirectoryOnly); }
-            catch (Exception exception) { _warnings.Add("ごみ箱を列挙できません: " + exception.Message); return result; }
+            catch (Exception exception) { _warnings.Add("ごみ箱の内容を調べられません: " + exception.Message); return result; }
             for (var index = 0; index < files.Length; index++)
             {
-                if (showProgress && EditorUtility.DisplayCancelableProgressBar(AsnText.WindowTitle, "ごみ箱を走査中", (float)index / files.Length)) break;
+                if (showProgress && EditorUtility.DisplayCancelableProgressBar(RefFixerText.WindowTitle, "ごみ箱を調べています", (float)index / files.Length)) break;
                 var name = Path.GetFileName(files[index]);
                 if (!IsRelevant(name)) continue;
                 result.Add(new RecycleBinEntry { RecycledAssetPath = files[index], OriginalPath = null, OriginalFileName = name, DeletedUtc = null });
@@ -267,7 +267,7 @@ namespace Maaaaa.Asn.Editor.Core
         public static bool Recover(RecycleBinEntry entry, out string message)
         {
             message = string.Empty;
-            if (entry == null || !entry.HasAsset) { message = "ごみ箱内の本体は既に失われています。"; return false; }
+            if (entry == null || !entry.HasAsset) { message = "ごみ箱にファイル本体がありません。"; return false; }
             if (entry.HasMeta == false && !string.IsNullOrEmpty(entry.Guid)) { message = "GUID を保持する .meta が失われています。"; return false; }
             var assetsRoot = Path.GetFullPath(Application.dataPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             string destination = null;
@@ -295,7 +295,7 @@ namespace Maaaaa.Asn.Editor.Core
                 return false;
             }
             var detail = "本体: " + entry.RecycledAssetPath + "\n復元先: " + destination + (entry.HasMeta ? "\n.meta も同時にコピーして GUID を保持します。" : "\n.meta が無いため GUID は保持できません（推測による回収）。");
-            if (!EditorUtility.DisplayDialog(AsnText.WindowTitle, detail, "コピーして復元", "キャンセル")) { message = "回収をキャンセルしました。"; return false; }
+            if (!EditorUtility.DisplayDialog(RefFixerText.WindowTitle, detail, "コピーして復元", "キャンセル")) { message = "回収をキャンセルしました。"; return false; }
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(destination));
@@ -321,7 +321,7 @@ namespace Maaaaa.Asn.Editor.Core
                     if (File.Exists(destination)) File.Delete(destination);
                     else if (Directory.Exists(destination)) Directory.Delete(destination, true);
                 }
-                catch (Exception cleanupException) { message += "\n作成途中のファイルを除去できませんでした: " + cleanupException.Message; }
+                catch (Exception cleanupException) { message += "\n作成途中のファイルを削除できませんでした: " + cleanupException.Message; }
                 ExecutionLogger.WriteRecovery(entry, destination, false, message);
                 return false;
             }

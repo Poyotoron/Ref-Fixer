@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
-namespace Maaaaa.Asn.Editor.Core
+namespace Poyo.RefFixer.Editor.Core
 {
     internal static class SubAssetCandidateFinder
     {

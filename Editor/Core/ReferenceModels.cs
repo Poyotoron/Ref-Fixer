@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Maaaaa.Asn.Editor.Core
+namespace Poyo.RefFixer.Editor.Core
 {
     internal enum IssueKind { None, GuidMissing, FileIdMissing, MissingScript, EmptyReference, TypeMismatch }
     internal enum IssueSeverity { None, Warning, Error }

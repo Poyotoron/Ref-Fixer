@@ -9,7 +9,7 @@ using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
-namespace Maaaaa.Asn.Editor.Core
+namespace Poyo.RefFixer.Editor.Core
 {
     [Serializable]
     internal sealed class UnityPackageIndexData
@@ -78,11 +78,23 @@ namespace Maaaaa.Asn.Editor.Core
         private static UnityPackageIndexData _cached;
         private static Dictionary<string, List<LookupEntry>> _guidLookup;
         private static Dictionary<string, List<LookupEntry>> _nameLookup;
-        private static string IndexPath => Path.Combine(AssetPathUtility.ProjectRoot, "Library", "AssetSanshounaosuNator", "unitypackage-index.json");
+        private static string IndexPath => Path.Combine(AssetPathUtility.ProjectRoot, "Library", "RefFixer", "unitypackage-index.json");
 
         public static UnityPackageIndexData Load()
         {
             if (_cached != null) return _cached;
+            // 外部フォルダが大きい場合の再構築を避けるため、以前の版の索引を使い回す。
+            var legacyPath = Path.Combine(AssetPathUtility.ProjectRoot, "Library", "AssetSanshounaosuNator", "unitypackage-index.json");
+            if (!File.Exists(IndexPath) && File.Exists(legacyPath))
+            {
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(IndexPath));
+                    File.Copy(legacyPath, IndexPath);
+                }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
             try
             {
                 if (File.Exists(IndexPath))
@@ -96,7 +108,7 @@ namespace Maaaaa.Asn.Editor.Core
                     }
                 }
             }
-            catch (Exception exception) { Debug.LogWarning("ASN: .unitypackage 索引を読み込めませんでした: " + exception.Message); }
+            catch (Exception exception) { Debug.LogWarning("[Poyo's Reference Fixer] .unitypackage 索引を読み込めませんでした: " + exception.Message); }
             _cached = new UnityPackageIndexData { schemaVersion = SchemaVersion };
             _guidLookup = null;
             _nameLookup = null;
@@ -292,14 +304,14 @@ namespace Maaaaa.Asn.Editor.Core
             {
                 if (string.IsNullOrWhiteSpace(folder) || !Directory.Exists(folder)) continue;
                 try { files.AddRange(Directory.GetFiles(folder, "*.unitypackage", SearchOption.AllDirectories)); }
-                catch (Exception exception) { Debug.LogWarning("ASN: フォルダを列挙できません: " + folder + "\n" + exception.Message); }
+                catch (Exception exception) { Debug.LogWarning("[Poyo's Reference Fixer] フォルダの一覧を取得できません: " + folder + "\n" + exception.Message); }
             }
             files = files.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(item => item, StringComparer.OrdinalIgnoreCase).ToList();
-            if (!EditorUtility.DisplayDialog(AsnText.WindowTitle,
-                    files.Count + " 件の .unitypackage を索引化します。大きなフォルダでは数分〜数十分かかる場合があります。\n\n変更のないファイルはスキップします。",
+            if (!EditorUtility.DisplayDialog(RefFixerText.WindowTitle,
+                    files.Count + " 件の .unitypackage の索引を作ります。大きなフォルダでは数分〜数十分かかる場合があります。\n\n変更のないファイルはスキップします。",
                     "構築 / 更新", "キャンセル"))
             {
-                message = "索引構築を開始しませんでした。";
+                message = "索引の作成を開始しませんでした。";
                 return false;
             }
 
@@ -311,7 +323,7 @@ namespace Maaaaa.Asn.Editor.Core
                 for (var index = 0; index < files.Count; index++)
                 {
                     var path = files[index];
-                    if (EditorUtility.DisplayCancelableProgressBar(AsnText.WindowTitle,
+                    if (EditorUtility.DisplayCancelableProgressBar(RefFixerText.WindowTitle,
                             (index + 1) + " / " + files.Count + ": " + Path.GetFileName(path),
                             files.Count == 0 ? 1f : (float)index / files.Count))
                     {
@@ -338,11 +350,11 @@ namespace Maaaaa.Asn.Editor.Core
                         parsed.lastWriteUtcTicks = info.LastWriteTimeUtc.Ticks;
                         parsed.scanSeconds = stopwatch.Elapsed.TotalSeconds;
                         next.packages.Add(parsed);
-                        Debug.Log("ASN: .unitypackage を走査しました: " + Path.GetFileName(path) + " / " + parsed.entries.Count + " GUID / " + stopwatch.Elapsed.TotalSeconds.ToString("0.00") + " 秒");
+                        Debug.Log("[Poyo's Reference Fixer] .unitypackage を調べました: " + Path.GetFileName(path) + " / " + parsed.entries.Count + " GUID / " + stopwatch.Elapsed.TotalSeconds.ToString("0.00") + " 秒");
                     }
                     catch (Exception exception)
                     {
-                        Debug.LogError("ASN: .unitypackage の走査に失敗しました: " + path + "\n" + exception);
+                        Debug.LogError("[Poyo's Reference Fixer] .unitypackage を調べられませんでした: " + path + "\n" + exception);
                     }
                 }
             }
@@ -353,7 +365,7 @@ namespace Maaaaa.Asn.Editor.Core
             _guidLookup = null;
             _nameLookup = null;
             Save(next);
-            message = (cancelled ? "索引構築をキャンセルしました。走査済み分を保存しました。" : "索引を更新しました。") +
+            message = (cancelled ? "索引の作成をキャンセルしました。調べた分の結果を保存しました。" : "索引を更新しました。") +
                 "\n対象: " + next.packages.Count + " 件 / GUID: " + next.packages.Sum(item => item.entries.Count) + " 件";
             return !cancelled;
         }
@@ -391,9 +403,9 @@ namespace Maaaaa.Asn.Editor.Core
                     var size = ReadOctal(header, 124, 12);
                     var type = (char)header[156];
                     if (type == 'L' || type == 'K')
-                        Debug.LogWarning("ASN: tar の GNU LongLink エントリをスキップします: " + path);
+                        Debug.LogWarning("[Poyo's Reference Fixer] tar の GNU LongLink エントリをスキップします: " + path);
                     else if (type != '\0' && type != '0' && type != '5' && reportedTypes.Add(type))
-                        Debug.LogWarning("ASN: 未対応の tar エントリ形式 '" + type + "' をスキップします: " + path);
+                        Debug.LogWarning("[Poyo's Reference Fixer] 未対応の tar エントリ形式 '" + type + "' をスキップします: " + path);
                     if (name.EndsWith("/pathname", StringComparison.Ordinal) && size >= 0 && size <= 1024 * 1024)
                     {
                         var bytes = new byte[(int)size];

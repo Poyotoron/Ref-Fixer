@@ -2,6 +2,19 @@
 
 このプロジェクトの変更履歴。バージョニングは [Semantic Versioning](https://semver.org/lang/ja/) に従う。
 
+## [0.3.0] - 2026-11-04
+
+名前を「アセット参照直すネーター」から「Poyo's Reference Fixer」に変えた。検査・修復の判定は変わらない。
+
+### Changed
+- **名前を変えた。** 表示名は「Poyo's Reference Fixer」、パッケージ ID は `net.maaaaa.ref-fixer`、メニューは `Tools > Poyo's Reference Fixer`、ウィンドウのタブの名前は「Reference Fixer」になった。リポジトリは [Poyotoron/Ref-Fixer](https://github.com/Poyotoron/Ref-Fixer)、ドキュメントは [https://ghp.maaaaa.net/Ref-Fixer/](https://ghp.maaaaa.net/Ref-Fixer/) に移った。
+- **旧版は自動で外れる。** `package.json` の `legacyPackages` に旧 ID を書いたので、VCC / ALCOM で新版を入れると旧版が削除される。旧版と同じプロジェクトに入っている間は、Console に旧版の削除を求める警告を 1 回出し、設定の移動はしない。
+- **設定の保存先を `Assets/zzz_pytr/Ref-Fixer/Settings.asset` に変えた。** 旧い場所（`Assets/zzz_pytr/Asset-Sanshounaosu-Nator/`）の設定は自動で移し、空になった旧フォルダは削除する。スクリプトの GUID を保ったので、設定アセットはそのまま読める。
+- **`.unitypackage` の索引を `Library/RefFixer/` に置くようにした。** 旧版の索引（`Library/AssetSanshounaosuNator/`）があれば複製して使うので、作り直す必要はない。
+- **初回の確認を旧版で了承していれば、もう一度は出さない。**
+- **バックアップとログの保存先を `<プロジェクト>/RefFixer_Backup/` に変えた。** 旧版の `AssetSanshounaosuNator_Backup/` は移さず、そのまま残す。
+- 検査ログと Markdown の見出し、Console のメッセージの接頭辞を「Poyo's Reference Fixer」にそろえた。修復をキャンセルしたときのメッセージを直した。
+
 ## [0.2.1] - 2026-08-16
 
 使い方ドキュメントの公開を目的とするリリース。ツールの機能・挙動に変更はない。

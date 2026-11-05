@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace Maaaaa.Asn.Editor.Core
+namespace Poyo.RefFixer.Editor.Core
 {
     internal static class ExecutionLogger
     {
         public static string CreateRunDirectory()
         {
-            var root = Path.Combine(AssetPathUtility.ProjectRoot, "AssetSanshounaosuNator_Backup");
+            var root = Path.Combine(AssetPathUtility.ProjectRoot, "RefFixer_Backup");
             Directory.CreateDirectory(root);
             var baseName = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var path = Path.Combine(root, baseName);
@@ -23,7 +23,7 @@ namespace Maaaaa.Asn.Editor.Core
         {
             var directory = CreateRunDirectory();
             var text = new StringBuilder();
-            text.AppendLine("# ASN 検査ログ");
+            text.AppendLine("# Poyo's Reference Fixer 検査ログ");
             text.AppendLine("timestamp: " + DateTime.Now.ToString("O"));
             text.AppendLine("target: " + result.RootAssetPath);
             foreach (var item in result.Issues)
@@ -36,7 +36,7 @@ namespace Maaaaa.Asn.Editor.Core
         {
             var directory = CreateRunDirectory();
             var text = new StringBuilder();
-            text.AppendLine("# ASN 一括検査ログ");
+            text.AppendLine("# Poyo's Reference Fixer 一括検査ログ");
             text.AppendLine("timestamp: " + DateTime.Now.ToString("O"));
             text.AppendLine("cancelled: " + batch.Cancelled.ToString().ToLowerInvariant());
             text.AppendLine("prefabs: " + batch.InspectedCount);
@@ -58,7 +58,7 @@ namespace Maaaaa.Asn.Editor.Core
         {
             var directory = CreateRunDirectory();
             var text = new StringBuilder();
-            text.AppendLine("# ASN ごみ箱回収ログ");
+            text.AppendLine("# Poyo's Reference Fixer ごみ箱回収ログ");
             text.AppendLine("timestamp: " + DateTime.Now.ToString("O"));
             text.AppendLine("success: " + success.ToString().ToLowerInvariant());
             text.AppendLine("sourceAsset: " + (entry != null ? entry.RecycledAssetPath : string.Empty));
