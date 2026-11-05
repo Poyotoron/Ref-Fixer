@@ -10,7 +10,7 @@ mkdocs serve -f "docs~/mkdocs.yml"
 
 `uv` を使わない場合は、依存の更新に `pip install -r "docs~/requirements.txt"` を使用できます。
 
-公開前は CI と同じ厳密な条件でビルドします。`ASN_VERSION` を指定しなければ、フッタの対応バージョンは `dev` になります。
+公開前は CI と同じ厳密な条件でビルドします。`PACKAGE_VERSION` を指定しなければ、フッタの対応バージョンは `dev` になります。
 
 ```powershell
 mkdocs build --strict -f "docs~/mkdocs.yml"
