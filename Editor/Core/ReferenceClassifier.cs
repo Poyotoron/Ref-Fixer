@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Maaaaa.Asn.Editor.Core
+namespace Poyo.RefFixer.Editor.Core
 {
     internal static class ReferenceClassifier
     {
@@ -57,13 +57,13 @@ namespace Maaaaa.Asn.Editor.Core
 
         public static string Label(ReferenceRecord record)
         {
-            return record.BackingFileMissing ? "T-B 参照先ファイル本体欠落" : Label(record.Issue);
+            return record.BackingFileMissing ? "T-B 参照先のファイルがありません" : Label(record.Issue);
         }
 
         public static string Description(ReferenceRecord record)
         {
             return record.BackingFileMissing
-                ? "T-B 参照先ファイル本体欠落: GUID のパスは判明していますが、Assets/ または Packages/ 配下の実ファイルが存在しません。"
+                ? "T-B 参照先のファイルがありません: GUID からパスは分かりましたが、Assets/ または Packages/ に参照先のファイルがありません。"
                 : Description(record.Issue);
         }
 
@@ -71,11 +71,11 @@ namespace Maaaaa.Asn.Editor.Core
         {
             switch (kind)
             {
-                case IssueKind.GuidMissing: return "T-A GUID 解決不可: guid がプロジェクト内に存在しません（パッケージ未導入、meta 再生成など）。";
-                case IssueKind.FileIdMissing: return "T-B fileID 解決不可: guid は解決しますが fileID がアセット内にありません（FBX の再インポート等でサブアセットの構成が変わり、fileID が変化した場合など）。";
-                case IssueKind.MissingScript: return "T-C Missing Script: m_Script の guid が解決できません（スクリプトやパッケージの消失、Dynamic Bone の残骸など）。";
-                case IssueKind.EmptyReference: return "T-D 空参照: fileID が 0 です（意図的な未設定の可能性があり、誤検知を多く含みます）。";
-                case IssueKind.TypeMismatch: return "T-E 型不一致: 解決したアセットの型がフィールドの期待型と異なります（手動書き換えの失敗など）。";
+                case IssueKind.GuidMissing: return "T-A GUID 解決不可: guid がプロジェクト内にありません。パッケージが入っていない場合や、meta が作り直された場合などに起きます。";
+                case IssueKind.FileIdMissing: return "T-B fileID 解決不可: guid は見つかりましたが、アセット内に fileID がありません。FBX の再インポートなどでサブアセットの構成と fileID が変わった場合などに起きます。";
+                case IssueKind.MissingScript: return "T-C Missing Script: m_Script の guid が見つかりません。スクリプトやパッケージがなくなった場合や、Dynamic Bone の参照が残っている場合などに起きます。";
+                case IssueKind.EmptyReference: return "T-D 空参照: fileID が 0 です。意図して未設定にしている可能性があり、誤検知を多く含みます。";
+                case IssueKind.TypeMismatch: return "T-E 型不一致: 参照先のアセットの型が、フィールドに必要な型と違います。手動の書き換えに失敗した場合などに起きます。";
                 default: return "問題は検出されていません。";
             }
         }

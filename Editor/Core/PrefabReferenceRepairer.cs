@@ -8,7 +8,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-namespace Maaaaa.Asn.Editor.Core
+namespace Poyo.RefFixer.Editor.Core
 {
     internal static class PrefabReferenceRepairer
     {
@@ -21,7 +21,7 @@ namespace Maaaaa.Asn.Editor.Core
             if (source == null || target == null || target.Asset == null) { result.Message = "修復対象または候補が無効です。"; return result; }
             if (string.IsNullOrEmpty(target.AssetPath) || PrefabReferenceScanner.IsBackingFileMissing(target.AssetPath))
             {
-                result.Message = "差し替え先のファイル本体が存在しません。AssetDatabase のキャッシュ上にだけ残った候補の可能性があります。再検査してください。";
+                result.Message = "差し替え先のファイルがありません。AssetDatabase の古い情報だけが残っている可能性があります。再検査してください。";
                 return result;
             }
             var stage = PrefabStageUtility.GetCurrentPrefabStage();
@@ -39,10 +39,10 @@ namespace Maaaaa.Asn.Editor.Core
                 // P-2: 承認の前であっても、修復処理に入った時点で最初に退避する。
                 File.Copy(sourceAbsolute, Path.Combine(runDirectory, Path.GetFileName(sourceAbsolute)), true);
                 var canUseSerializedProperty = !source.IsScript && !source.IsModificationTarget && HasSerializedProperty(source);
-                var candidateWarning = target.Certainty == CandidateCertainty.Guess ? "\n" + AsnText.GuessWarning : string.Empty;
-                if (canUseSerializedProperty && !EditorUtility.DisplayDialog(AsnText.WindowTitle, AsnText.RepairWarning + "\n\n保存先: " + runDirectory + "\n\n候補: " + target.AssetPath + candidateWarning, "修復する", "キャンセル"))
+                var candidateWarning = target.Certainty == CandidateCertainty.Guess ? "\n" + RefFixerText.GuessWarning : string.Empty;
+                if (canUseSerializedProperty && !EditorUtility.DisplayDialog(RefFixerText.WindowTitle, RefFixerText.RepairWarning + "\n\n保存先: " + runDirectory + "\n\n候補: " + target.AssetPath + candidateWarning, "修復する", "キャンセル"))
                 {
-                    result.Message = "ユーザーが修復をキャンセルしました。バックアップは保存済みです。";
+                    result.Message = "修復をキャンセルしました。バックアップは保存してあります。";
                     result.Method = RepairMethod.SerializedProperty;
                     ExecutionLogger.WriteRepair(runDirectory, source, target, result.Method, false, result.Message);
                     return result;
@@ -50,7 +50,7 @@ namespace Maaaaa.Asn.Editor.Core
 
                 if (canUseSerializedProperty && PrefabReferenceScanner.IsBackingFileMissing(target.AssetPath))
                 {
-                    result.Message = "承認待ちの間に差し替え先のファイル本体が無くなりました。何も書き換えていません。再検査してください。";
+                    result.Message = "承認を待つ間に、差し替え先のファイルがなくなりました。何も書き換えていません。再検査してください。";
                     result.Method = RepairMethod.SerializedProperty;
                     ExecutionLogger.WriteRepair(runDirectory, source, target, result.Method, false, result.Message);
                     return result;
@@ -94,18 +94,18 @@ namespace Maaaaa.Asn.Editor.Core
             }
             if (PrefabReferenceScanner.IsBackingFileMissing(target.AssetPath))
             {
-                result.Message = "差し替え先の Prefab ファイル本体が存在しません。AssetDatabase のキャッシュ上にだけ残った候補の可能性があります。再検査してください。";
+                result.Message = "差し替え先の Prefab ファイルがありません。AssetDatabase の古い情報だけが残っている可能性があります。再検査してください。";
                 return result;
             }
             if (string.Equals(group.Guid, target.Guid, StringComparison.OrdinalIgnoreCase))
             {
-                result.Message = "差し替え前後の GUID が同一です。";
+                result.Message = "差し替え前と差し替え先の GUID が同じです。";
                 return result;
             }
             if (group.References.Any(item => !string.Equals(item.SourceAssetPath, group.SourceAssetPath, StringComparison.OrdinalIgnoreCase) ||
                 !string.Equals(item.Guid, group.Guid, StringComparison.OrdinalIgnoreCase)))
             {
-                result.Message = "異なるファイルまたは GUID の参照がグループに混在しています。再検査してください。";
+                result.Message = "グループに、別のファイルや GUID への参照が混ざっています。再検査してください。";
                 return result;
             }
 
@@ -191,17 +191,17 @@ namespace Maaaaa.Asn.Editor.Core
             var resolvedOverrideCount = overrideRecords.Count(item => candidateFileIds.Contains(item.FileId));
             var resolution = "override " + overrideRecords.Count + " 件中 " + resolvedOverrideCount + " 件が差し替え先で解決します。";
             var assessment = resolvedOverrideCount == overrideRecords.Count
-                ? "全 override の fileID が存在します。同じ実体の Prefab である可能性が高い候補です。"
+                ? "すべての override の fileID が差し替え先にあります。同じ Prefab である可能性が高い候補です。"
                 : resolvedOverrideCount == 0 && overrideRecords.Count > 0
-                    ? "警告: 解決する override が 1 件もありません。別物の Prefab である可能性が高く、調整値が失われ得ます。"
-                    : "警告: 解決しない override があります。その調整値は Unity に破棄される可能性があります。";
+                    ? "警告: 差し替え先に対応する fileID がある override は 1 件もありません。別の Prefab である可能性が高く、調整値が失われる可能性があります。"
+                    : "警告: 差し替え先に対応する fileID がない override があります。その調整値が Unity に破棄される可能性があります。";
             var representativeDiff = BuildRepresentativeDiff(group.SourceAssetPath, changes, 5);
-            var guess = target.Certainty == CandidateCertainty.Guess ? "\n" + AsnText.GuessWarning : string.Empty;
+            var guess = target.Certainty == CandidateCertainty.Guess ? "\n" + RefFixerText.GuessWarning : string.Empty;
             var otherFiles = group.OtherSourceAssetPaths.Count == 0 ? string.Empty :
                 "\n\n同じ GUID は他の Prefab からも参照されていますが、この操作では書き換えません:\n" +
                 string.Join("\n", group.OtherSourceAssetPaths.ToArray());
-            var preview = AsnText.RepairWarning + guess +
-                "\n\nYAML 直接書き換えは Unity 非公式の手法であり、将来の Unity では動作しない可能性があります。" +
+            var preview = RefFixerText.RepairWarning + guess +
+                "\n\nYAML の直接書き換えは Unity 公式の方法ではありません。将来の Unity では動かない可能性があります。" +
                 "\n\nGUID をまとめて変更します（fileID / type は保持）" +
                 "\nm_SourcePrefab: " + group.SourcePrefabCount + " 件" +
                 "\noverride target: " + group.ModificationTargetCount + " 件" +
@@ -209,7 +209,7 @@ namespace Maaaaa.Asn.Editor.Core
                 "\nその他の同一 GUID 参照: " + Math.Max(0, records.Count - group.SourcePrefabCount - group.ModificationTargetCount - group.ObjectReferenceCount) + " 件" +
                 "\n合計参照: " + records.Count + " 件 / 変更行: " + changes.Count + " 行" +
                 "\n\n" + resolution + "\n" + assessment + otherFiles +
-                "\n\n代表 Diff（全文は修復ログへ記録します）:\n" + representativeDiff;
+                "\n\nDiff の抜粋（全文は修復ログに記録します）:\n" + representativeDiff;
             if (!EditorUtility.DisplayDialog("Prefab グループ Diff プレビュー", preview, "この Diff をまとめて適用", "キャンセル"))
             {
                 result.Message = "Prefab グループ Diff の適用がキャンセルされました。";
@@ -217,14 +217,14 @@ namespace Maaaaa.Asn.Editor.Core
             }
             if (PrefabReferenceScanner.IsBackingFileMissing(target.AssetPath))
             {
-                result.Message = "承認待ちの間に差し替え先の Prefab ファイル本体が無くなりました。何も書き換えていません。再検査してください。";
+                result.Message = "承認を待つ間に、差し替え先の Prefab ファイルがなくなりました。何も書き換えていません。再検査してください。";
                 return result;
             }
 
             ReplaceLinesPreservingFormat(absolutePath, changes);
             AssetDatabase.ImportAsset(group.SourceAssetPath, ImportAssetOptions.ForceUpdate);
             result.Success = true;
-            result.Message = "同一 GUID の参照 " + records.Count + " 件をまとめて書き換え、再インポートしました。\n" + resolution;
+            result.Message = "同じ GUID の参照 " + records.Count + " 件をまとめて書き換え、再インポートしました。\n" + resolution;
             return result;
         }
 
@@ -327,14 +327,14 @@ namespace Maaaaa.Asn.Editor.Core
                 return result;
             }
             var newLine = oldLine.Substring(0, source.ReferenceColumn) + replacement + oldLine.Substring(source.ReferenceColumn + source.RawReference.Length);
-            if (newLine == oldLine) { result.Message = "置換対象を行内に見つけられません。"; return result; }
-            var risk = source.IsScript ? AsnText.MissingScriptRepairWarning : AsnText.RepairWarning;
-            var guess = target.Certainty == CandidateCertainty.Guess ? "\n" + AsnText.GuessWarning : string.Empty;
-            var diff = $"{risk}{guess}\n\nYAML 直接書き換えは Unity 非公式の手法であり、将来の Unity では動作しない可能性があります。\n\n@@ {source.SourceAssetPath}:{source.LineNumber} @@\n- {oldLine.Trim()}\n+ {newLine.Trim()}";
+            if (newLine == oldLine) { result.Message = "行の中に書き換える対象が見つかりません。"; return result; }
+            var risk = source.IsScript ? RefFixerText.MissingScriptRepairWarning : RefFixerText.RepairWarning;
+            var guess = target.Certainty == CandidateCertainty.Guess ? "\n" + RefFixerText.GuessWarning : string.Empty;
+            var diff = $"{risk}{guess}\n\nYAML の直接書き換えは Unity 公式の方法ではありません。将来の Unity では動かない可能性があります。\n\n@@ {source.SourceAssetPath}:{source.LineNumber} @@\n- {oldLine.Trim()}\n+ {newLine.Trim()}";
             if (!EditorUtility.DisplayDialog("Diff プレビュー", diff, "この Diff を適用", "キャンセル")) { result.Message = "Diff の適用がキャンセルされました。"; return result; }
             if (PrefabReferenceScanner.IsBackingFileMissing(target.AssetPath))
             {
-                result.Message = "承認待ちの間に差し替え先のファイル本体が無くなりました。何も書き換えていません。再検査してください。";
+                result.Message = "承認を待つ間に、差し替え先のファイルがなくなりました。何も書き換えていません。再検査してください。";
                 return result;
             }
             ReplaceLinePreservingFormat(absolutePath, source.LineNumber, oldLine, newLine);

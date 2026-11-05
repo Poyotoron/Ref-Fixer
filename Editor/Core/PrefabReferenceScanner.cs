@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Maaaaa.Asn.Editor.Yaml;
+using Poyo.RefFixer.Editor.Yaml;
 using UnityEditor;
 using UnityEngine;
 
-namespace Maaaaa.Asn.Editor.Core
+namespace Poyo.RefFixer.Editor.Core
 {
     internal static class PrefabReferenceScanner
     {
@@ -35,7 +35,7 @@ namespace Maaaaa.Asn.Editor.Core
             {
                 for (var index = 0; index < paths.Count; index++)
                 {
-                    if (EditorUtility.DisplayCancelableProgressBar(AsnText.WindowTitle,
+                    if (EditorUtility.DisplayCancelableProgressBar(RefFixerText.WindowTitle,
                             (index + 1) + " / " + paths.Count + ": " + paths[index],
                             paths.Count == 0 ? 1f : (float)index / paths.Count))
                     {
@@ -54,14 +54,14 @@ namespace Maaaaa.Asn.Editor.Core
             Dictionary<string, bool> backingFileExistence, Dictionary<string, List<ReferenceRecord>> scanCache, bool showProgress, bool isRoot)
         {
             if (string.IsNullOrEmpty(assetPath) || !visited.Add(assetPath)) return;
-            if (showProgress) EditorUtility.DisplayProgressBar(AsnText.WindowTitle, "参照を走査中: " + assetPath, Mathf.Clamp01(visited.Count / 20f));
+            if (showProgress) EditorUtility.DisplayProgressBar(RefFixerText.WindowTitle, "参照を調べています: " + assetPath, Mathf.Clamp01(visited.Count / 20f));
             var absolutePath = AssetPathUtility.ToAbsolutePath(assetPath);
             if (!File.Exists(absolutePath))
             {
                 if (isRoot)
                 {
                     result.RootFileMissing = true;
-                    result.Errors.Add("検査対象のファイル本体が見つかりません: " + assetPath);
+                    result.Errors.Add("検査対象のファイルがありません: " + assetPath);
                 }
                 return;
             }
@@ -118,12 +118,12 @@ namespace Maaaaa.Asn.Editor.Core
             {
                 // Library の import キャッシュが解決できても、物理ファイル欠落を優先する。
                 record.FileIdResolved = false;
-                record.TypeAssessment = "参照先ファイル本体が物理的に存在しません。";
+                record.TypeAssessment = "参照先のファイルがありません。";
             }
             else if (!hasResolvedAsset)
-                record.TypeAssessment = "GUID のパスは解決しましたが、参照先ファイル本体が見つかりません。";
+                record.TypeAssessment = "GUID からパスは分かりましたが、参照先のファイルがありません。";
             else
-                record.TypeAssessment = record.ExpectedType == null ? "期待型を YAML から確定できないため判定不可" : null;
+                record.TypeAssessment = record.ExpectedType == null ? "YAML から必要な型が分からないため判定できません" : null;
         }
 
         internal static bool IsBackingFileMissing(string assetPath)

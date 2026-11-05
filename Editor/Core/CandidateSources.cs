@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Maaaaa.Asn.Editor.Core
+namespace Poyo.RefFixer.Editor.Core
 {
     internal sealed class CandidateSearchDiagnostics
     {
@@ -24,16 +24,16 @@ namespace Maaaaa.Asn.Editor.Core
         {
             var text = new StringBuilder();
             text.AppendLine(NameHints.Length == 0
-                ? "プロジェクト内探索の手がかり: なし"
-                : "プロジェクト内探索の手がかり: " + string.Join(" / ", NameHints.Select(item => "『" + item + "』").ToArray()));
+                ? "プロジェクト内を探す手がかり: なし"
+                : "プロジェクト内を探す手がかり: " + string.Join(" / ", NameHints.Select(item => "『" + item + "』").ToArray()));
             text.AppendLine(ProjectEnabled
                 ? "プロジェクト内: " + ProjectReturned + " 件"
                 : "プロジェクト内: 無効");
             if (ProjectEnabled)
             {
-                text.AppendLine("  t:Prefab等 " + Project.Enumerated + " 件 → 実体なし " + Project.MissingFileExcluded +
-                    " / 自分自身 " + Project.SourceAssetExcluded + " / 非Prefab " + Project.NonPrefabExcluded +
-                    " / 読込不可 " + Project.LoadFailed + "（案内候補 " + Project.BrokenPrefabPresented + "）" +
+                text.AppendLine("  t:Prefab等 " + Project.Enumerated + " 件 → ファイルなし " + Project.MissingFileExcluded +
+                    " / 自分自身 " + Project.SourceAssetExcluded + " / Prefab 以外 " + Project.NonPrefabExcluded +
+                    " / 読み込み不可 " + Project.LoadFailed + "（表示だけの候補 " + Project.BrokenPrefabPresented + "）" +
                     " / 型不一致 " + Project.TypeMismatchExcluded + " / ID取得不可 " + Project.IdentifierExcluded +
                     " / スコア不足 " + Project.ScoreExcluded + " → 条件一致 " + Project.Matched + " 件中 " + Project.Presented + " 件を提示");
             }
@@ -45,9 +45,9 @@ namespace Maaaaa.Asn.Editor.Core
                 if (UnityPackageGuidReturned == 0)
                 {
                     text.AppendLine(UnityPackageNameSearch.Hints.Length == 0
-                        ? "  名前探索の手がかり: なし"
-                        : "  名前探索の手がかり: " + string.Join(" / ", UnityPackageNameSearch.Hints.Select(item => "『" + item + "』").ToArray()));
-                    text.AppendLine("  当該 GUID は索引にありません。名前 " + UnityPackageNameSearch.IndexedNames +
+                        ? "  名前を探す手がかり: なし"
+                        : "  名前を探す手がかり: " + string.Join(" / ", UnityPackageNameSearch.Hints.Select(item => "『" + item + "』").ToArray()));
+                    text.AppendLine("  この GUID は索引にありません。名前 " + UnityPackageNameSearch.IndexedNames +
                         " 種を照合 → 部分一致以上 " + UnityPackageNameSearch.MatchedNames + " 種 / " +
                         UnityPackageNameSearch.MatchedEntries + " エントリ / " + UnityPackageNameSearch.MatchedPackages +
                         " package → 重複上限 " + UnityPackageNameSearch.CommonNameLimit + " 件 / ありふれた名前を " + UnityPackageNameSearch.CommonNamesExcluded +
@@ -57,7 +57,7 @@ namespace Maaaaa.Asn.Editor.Core
             }
             else text.AppendLine(".unitypackage: 無効");
             text.Append(RecycleBinEnabled
-                ? "ごみ箱: " + RecycleBinReturned + " 件（現在の走査キャッシュ）"
+                ? "ごみ箱: " + RecycleBinReturned + " 件（現在の検索結果）"
                 : "ごみ箱: 無効");
             return text.ToString();
         }
@@ -135,7 +135,7 @@ namespace Maaaaa.Asn.Editor.Core
 
         public static List<RepairCandidate> Find(ReferenceRecord record, out CandidateSearchDiagnostics diagnostics)
         {
-            var settings = AsnSettings.GetOrCreate();
+            var settings = RefFixerSettings.GetOrCreate();
             diagnostics = new CandidateSearchDiagnostics
             {
                 ProjectEnabled = settings.projectSearchEnabled,

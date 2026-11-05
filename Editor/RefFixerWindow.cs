@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Text;
-using Maaaaa.Asn.Editor.Core;
+using Poyo.RefFixer.Editor.Core;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-namespace Maaaaa.Asn.Editor
+namespace Poyo.RefFixer.Editor
 {
-    internal sealed class AsnWindow : EditorWindow
+    internal sealed class RefFixerWindow : EditorWindow
     {
         private const int CollapseGroupThreshold = 8;
         [SerializeField] private UnityEngine.Object _targetAsset;
@@ -33,11 +33,11 @@ namespace Maaaaa.Asn.Editor
         private string _status;
         private bool _showSearchSettings;
 
-        [MenuItem(AsnInfo.MenuRoot)]
+        [MenuItem(RefFixerInfo.MenuRoot)]
         private static void Open()
         {
-            var window = GetWindow<AsnWindow>();
-            window.titleContent = new GUIContent(AsnText.WindowTitle);
+            var window = GetWindow<RefFixerWindow>();
+            window.titleContent = new GUIContent(RefFixerText.WindowTitle);
             window.minSize = new Vector2(620f, 420f);
             window.Show();
         }
@@ -51,15 +51,19 @@ namespace Maaaaa.Asn.Editor
 
         private void ShowFirstRunWarning()
         {
-            if (EditorPrefs.GetBool(AsnInfo.AcknowledgedKey, false)) return;
-            if (EditorUtility.DisplayDialog(AsnText.WindowTitle, AsnText.FirstRunWarning, "了承して開く", "閉じる"))
-                EditorPrefs.SetBool(AsnInfo.AcknowledgedKey, true);
+            // 旧名の版で注意を読んだ人に、同じ注意をもう一度出さない。
+            if (!EditorPrefs.HasKey(RefFixerInfo.AcknowledgedKey) &&
+                EditorPrefs.GetBool(RefFixerInfo.LegacyAcknowledgedKey, false))
+                EditorPrefs.SetBool(RefFixerInfo.AcknowledgedKey, true);
+            if (EditorPrefs.GetBool(RefFixerInfo.AcknowledgedKey, false)) return;
+            if (EditorUtility.DisplayDialog(RefFixerText.WindowTitle, RefFixerText.FirstRunWarning, "了承して開く", "閉じる"))
+                EditorPrefs.SetBool(RefFixerInfo.AcknowledgedKey, true);
             else Close();
         }
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("Prefab の参照を検査・診断・修復します", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Prefab の参照を検査・修復します", EditorStyles.boldLabel);
             DrawVersionWarning();
             var forceText = EditorSettings.serializationMode == SerializationMode.ForceText;
             if (!forceText) DrawForceTextGuide();
@@ -79,7 +83,7 @@ namespace Maaaaa.Asn.Editor
             _showSearchSettings = EditorGUILayout.Foldout(_showSearchSettings, "探索設定（プロジェクト内 / .unitypackage / ごみ箱）", true);
             if (!_showSearchSettings) return;
             EditorGUI.indentLevel++;
-            var settings = AsnSettings.GetOrCreate();
+            var settings = RefFixerSettings.GetOrCreate();
             EditorGUI.BeginChangeCheck();
             settings.projectSearchEnabled = EditorGUILayout.ToggleLeft("モード 1: プロジェクト内の類似候補", settings.projectSearchEnabled);
             settings.unityPackageSearchEnabled = EditorGUILayout.ToggleLeft("モード 2: .unitypackage の GUID 索引", settings.unityPackageSearchEnabled);
@@ -110,16 +114,16 @@ namespace Maaaaa.Asn.Editor
             }
             using (new EditorGUI.DisabledScope(settings.unityPackageFolders.Count == 0))
                 if (GUILayout.Button("索引を構築 / 更新", GUILayout.Width(130f))) UnityPackageIndexStore.BuildOrUpdate(settings.unityPackageFolders, out _status);
-            if (GUILayout.Button("ごみ箱を再走査", GUILayout.Width(110f)))
+            if (GUILayout.Button("ごみ箱を調べ直す", GUILayout.Width(110f)))
             {
                 var count = RecycleBinScanner.Scan(true).Count;
-                _status = "ごみ箱を走査しました: " + count + " 件。" + (RecycleBinScanner.Warnings.Count > 0 ? "\n" + string.Join("\n", RecycleBinScanner.Warnings.ToArray()) : string.Empty);
+                _status = "ごみ箱を調べました: " + count + " 件。" + (RecycleBinScanner.Warnings.Count > 0 ? "\n" + string.Join("\n", RecycleBinScanner.Warnings.ToArray()) : string.Empty);
             }
             EditorGUILayout.EndHorizontal();
             var status = UnityPackageIndexStore.GetStatus();
             EditorGUILayout.LabelField(string.IsNullOrEmpty(status.LastScanTime)
                 ? ".unitypackage 索引: 未構築"
-                : ".unitypackage 索引: " + status.PackageCount + " package / " + status.GuidCount + " GUID / 最終走査 " + status.LastScanTime + (status.Completed ? string.Empty : "（未完了）"), EditorStyles.wordWrappedMiniLabel);
+                : ".unitypackage 索引: " + status.PackageCount + " package / " + status.GuidCount + " GUID / 最終調査 " + status.LastScanTime + (status.Completed ? string.Empty : "（未完了）"), EditorStyles.wordWrappedMiniLabel);
             EditorGUILayout.LabelField("ごみ箱: " + RecycleBinScanner.SupportDescription, EditorStyles.miniLabel);
             EditorGUI.indentLevel--;
         }
@@ -132,13 +136,13 @@ namespace Maaaaa.Asn.Editor
 
         private void DrawForceTextGuide()
         {
-            EditorGUILayout.HelpBox("現在: " + EditorSettings.serializationMode + "\n" + AsnText.ForceTextReason + "\n\n" + AsnText.ForceTextCost, MessageType.Error);
+            EditorGUILayout.HelpBox("現在: " + EditorSettings.serializationMode + "\n" + RefFixerText.ForceTextReason + "\n\n" + RefFixerText.ForceTextCost, MessageType.Error);
             if (GUILayout.Button("このプロジェクトを Force Text に変換する") &&
-                EditorUtility.DisplayDialog("Force Text へ変換", AsnText.ForceTextCost + "\n\n本当に変換しますか？", "変換する", "キャンセル"))
+                EditorUtility.DisplayDialog("Force Text へ変換", RefFixerText.ForceTextCost + "\n\n本当に変換しますか？", "変換する", "キャンセル"))
             {
                 EditorSettings.serializationMode = SerializationMode.ForceText;
                 AssetDatabase.SaveAssets();
-                _status = "シリアライズモードを Force Text に変更しました。Unity の再シリアライズ完了を確認してください。";
+                _status = "保存形式を Force Text に変更しました。Unity がアセットを保存し直す処理の完了を確認してください。";
                 Repaint();
             }
         }
@@ -168,7 +172,7 @@ namespace Maaaaa.Asn.Editor
             var paths = CollectPrefabPaths(new[] { path });
             if (paths.Count == 0)
             {
-                _status = "指定対象に Prefab がありません。";
+                _status = "指定した対象に Prefab がありません。";
                 return;
             }
             _targetAssetPaths = paths;
@@ -207,7 +211,7 @@ namespace Maaaaa.Asn.Editor
             var prefabs = CollectPrefabPaths(selectedPaths);
             if (prefabs.Count == 0)
             {
-                if (showError) _status = "選択対象に Prefab がありません。";
+                if (showError) _status = "選択した対象に Prefab がありません。";
                 return;
             }
             _targetAssetPaths = prefabs;
@@ -226,11 +230,11 @@ namespace Maaaaa.Asn.Editor
         {
             if (_targetAssetPaths.Count > 1)
             {
-                if (!EditorUtility.DisplayDialog(AsnText.WindowTitle, _targetAssetPaths.Count + " 件の Prefab を検査します。完了まで時間がかかる場合があります。", "検査する", "キャンセル")) return;
+                if (!EditorUtility.DisplayDialog(RefFixerText.WindowTitle, _targetAssetPaths.Count + " 件の Prefab を検査します。完了まで時間がかかる場合があります。", "検査する", "キャンセル")) return;
                 _batchResult = PrefabReferenceScanner.InspectBatch(_targetAssetPaths);
                 _result = null;
                 ExecutionLogger.WriteBatchInspection(_batchResult);
-                _status = (_batchResult.Cancelled ? "一括検査をキャンセルしました。走査済みの結果を表示します。" : "一括検査が完了しました。") + " ログを 1 件出力しました。";
+                _status = (_batchResult.Cancelled ? "一括検査をキャンセルしました。調べた分の結果を表示します。" : "一括検査が完了しました。") + " ログを 1 件出力しました。";
             }
             else
             {
@@ -418,8 +422,8 @@ namespace Maaaaa.Asn.Editor
 
         private void DrawRootFileMissing()
         {
-            EditorGUILayout.HelpBox("検査対象のファイル本体が見つかりません: " + _result.RootAssetPath +
-                "\n元ファイル名から同名・類似の Prefab を探せますが、自動的な差し替えは行いません。候補を確認して手動で対象を選び直してください。", MessageType.Warning);
+            EditorGUILayout.HelpBox("検査対象のファイルがありません: " + _result.RootAssetPath +
+                "\n元のファイル名から、同じ名前や似た名前の Prefab を探せます。自動では差し替えません。候補を確認して、手動で対象を選び直してください。", MessageType.Warning);
             EditorGUILayout.BeginHorizontal();
             using (new EditorGUI.DisabledScope(_targetAsset == null))
                 if (GUILayout.Button("対象を表示", GUILayout.Width(100f))) EditorGUIUtility.PingObject(_targetAsset);
@@ -439,7 +443,7 @@ namespace Maaaaa.Asn.Editor
                 return;
             }
             EditorGUILayout.LabelField("手動対応の候補（推測）", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(AsnText.GuessWarning, MessageType.Warning);
+            EditorGUILayout.HelpBox(RefFixerText.GuessWarning, MessageType.Warning);
             foreach (var candidate in _rootMissingCandidates)
             {
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
@@ -484,7 +488,7 @@ namespace Maaaaa.Asn.Editor
             if (IsMissingPrefab(issue))
             {
                 if (string.IsNullOrEmpty(issue.ReferencedName))
-                    EditorGUILayout.HelpBox("欠落 Prefab 名は不明です（元名の手がかりなし）。.unitypackage 索引またはごみ箱探索を確認してください。", MessageType.Info);
+                    EditorGUILayout.HelpBox("見つからない Prefab の元の名前が分かりません。.unitypackage の索引か、ごみ箱から探してください。", MessageType.Info);
                 else
                     EditorGUILayout.LabelField("欠落 Prefab 名", issue.ReferencedName);
                 if (!string.IsNullOrEmpty(issue.ResolvedAssetPath))
@@ -627,29 +631,29 @@ namespace Maaaaa.Asn.Editor
             }
             EditorGUILayout.EndHorizontal();
             if (selectedPrefabGroup != null)
-                EditorGUILayout.HelpBox("同一ファイル内の同じ GUID をまとめて修復します。m_SourcePrefab " + selectedPrefabGroup.SourcePrefabCount +
+                EditorGUILayout.HelpBox("このファイル内の同じ GUID をまとめて修復します。m_SourcePrefab " + selectedPrefabGroup.SourcePrefabCount +
                     " 件 / override target " + selectedPrefabGroup.ModificationTargetCount + " 件 / objectReference " +
                     selectedPrefabGroup.ObjectReferenceCount + " 件 / 合計 " + selectedPrefabGroup.References.Count + " 件。fileID と type は保持します。", MessageType.Info);
             if (selectedIssue.Issue == IssueKind.FileIdMissing)
             {
                 if (selectedIssue.BackingFileMissing)
-                    EditorGUILayout.HelpBox("参照先ファイルは物理的に存在しません: " + selectedIssue.ResolvedAssetPath +
-                        "\nAssetDatabase のキャッシュ上では GUID が解決していますが、名前・.unitypackage・ごみ箱を手がかりに別のアセットを探します。候補はすべて確認してください。", MessageType.Error);
+                    EditorGUILayout.HelpBox("参照先のファイルがありません: " + selectedIssue.ResolvedAssetPath +
+                        "\nAssetDatabase の記録には GUID がありますが、ファイルがありません。名前・.unitypackage・ごみ箱を手がかりに別のアセットを探します。候補はすべて確認してください。", MessageType.Error);
                 else
                     EditorGUILayout.HelpBox("ファイルは見つかっています: " + selectedIssue.ResolvedAssetPath +
                         "\n同一アセット内のサブアセットから fileID を選び直します。候補はすべて推測です。", MessageType.Info);
             }
-            if (selectedIssue.IsScript) EditorGUILayout.HelpBox(AsnText.MissingScriptRepairWarning, MessageType.Warning);
+            if (selectedIssue.IsScript) EditorGUILayout.HelpBox(RefFixerText.MissingScriptRepairWarning, MessageType.Warning);
             if (candidates != null && candidates.Any(item => item.Certainty == CandidateCertainty.Guess))
-                EditorGUILayout.HelpBox(AsnText.GuessWarning, MessageType.Warning);
+                EditorGUILayout.HelpBox(RefFixerText.GuessWarning, MessageType.Warning);
             if (_candidateDiagnostics != null)
                 EditorGUILayout.HelpBox(_candidateDiagnostics.ToDisplayText(), MessageType.Info);
             if (candidates == null || candidates.Count == 0)
             {
-                EditorGUILayout.LabelField("該当する候補がありません。名前として意味のある一致に満たない候補は除外しました。", EditorStyles.wordWrappedLabel);
+                EditorGUILayout.LabelField("条件に合う候補がありません。名前の一致が不十分なものは表示していません。", EditorStyles.wordWrappedLabel);
                 if (selectedIssue.Issue == IssueKind.GuidMissing || selectedIssue.Issue == IssueKind.MissingScript || selectedIssue.BackingFileMissing)
                 {
-                    EditorGUILayout.HelpBox(".unitypackage 索引が未構築なら、探索設定からフォルダを登録して索引を構築してください。\n" + AsnText.RecycleBinLimitWarning, MessageType.Info);
+                    EditorGUILayout.HelpBox(".unitypackage の索引がなければ、探索設定でフォルダを登録して索引を作ってください。\n" + RefFixerText.RecycleBinLimitWarning, MessageType.Info);
                 }
             }
             else foreach (var candidate in candidates)
@@ -675,8 +679,8 @@ namespace Maaaaa.Asn.Editor
                 if (candidate.SourceKind == CandidateSourceKind.UnityPackage)
                 {
                     EditorGUILayout.HelpBox(candidate.Certainty == CandidateCertainty.Certain
-                        ? AsnText.UnityPackageImportGuide
-                        : AsnText.UnityPackageNameMatchGuide,
+                        ? RefFixerText.UnityPackageImportGuide
+                        : RefFixerText.UnityPackageNameMatchGuide,
                         candidate.Certainty == CandidateCertainty.Certain ? MessageType.Info : MessageType.Warning);
                     foreach (var packagePath in candidate.PackagePaths)
                     {
@@ -711,7 +715,7 @@ namespace Maaaaa.Asn.Editor
                         EditorGUILayout.EndVertical();
                         return;
                     }
-                    EditorGUILayout.HelpBox(AsnText.RecycleBinLimitWarning, MessageType.Info);
+                    EditorGUILayout.HelpBox(RefFixerText.RecycleBinLimitWarning, MessageType.Info);
                 }
                 EditorGUILayout.EndVertical();
             }
@@ -743,9 +747,9 @@ namespace Maaaaa.Asn.Editor
             else if (issue.IsScript)
             {
                 _candidates = new List<RepairCandidate>();
-                if (AsnSettings.GetOrCreate().unityPackageSearchEnabled) _candidates.AddRange(new UnityPackageCandidateSource().Find(issue));
-                if (AsnSettings.GetOrCreate().recycleBinSearchEnabled) _candidates.AddRange(new RecycleBinCandidateSource().Find(issue));
-                if (AsnSettings.GetOrCreate().projectSearchEnabled) _candidates.AddRange(MonoScriptCandidateFinder.Find(issue));
+                if (RefFixerSettings.GetOrCreate().unityPackageSearchEnabled) _candidates.AddRange(new UnityPackageCandidateSource().Find(issue));
+                if (RefFixerSettings.GetOrCreate().recycleBinSearchEnabled) _candidates.AddRange(new RecycleBinCandidateSource().Find(issue));
+                if (RefFixerSettings.GetOrCreate().projectSearchEnabled) _candidates.AddRange(MonoScriptCandidateFinder.Find(issue));
                 _candidates = _candidates.OrderBy(item => item.Certainty).ThenByDescending(item => item.Score).ToList();
             }
             else _candidates = CandidateAggregator.Find(issue, out _candidateDiagnostics);
@@ -886,7 +890,7 @@ namespace Maaaaa.Asn.Editor
 
         private static string BatchToMarkdown(BatchInspectionResult batch)
         {
-            var text = new StringBuilder("# ASN 一括検査結果\n\n検査: " + batch.InspectedCount + " / 問題のある Prefab: " + batch.ProblemPrefabCount + " / 問題: " + batch.IssueCount + "\n\n");
+            var text = new StringBuilder("# Poyo's Reference Fixer 一括検査結果\n\n検査: " + batch.InspectedCount + " / 問題のある Prefab: " + batch.ProblemPrefabCount + " / 問題: " + batch.IssueCount + "\n\n");
             foreach (var result in batch.Results)
             {
                 text.AppendLine("## " + result.RootAssetPath);
